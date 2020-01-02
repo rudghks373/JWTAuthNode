@@ -1,2 +1,0 @@
-# JWTAuthNode
-Created with CodeSandbox
