@@ -5,6 +5,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
+const MongoClient = require("mongodb").MongoClient;
 
 /* =======================
     LOAD THE CONFIG
@@ -37,14 +38,29 @@ app.listen(port, () => {
   console.log(`Express is running on port ${port}`);
 });
 
+// index page, just for testing
+app.get("/", (req, res) => {
+  res.send("Hello JWT");
+});
+
+// configure api router
+app.use("/api", require("./routes/api"));
+
+// open the server
+app.listen(port, () => {
+  console.log(`Express is running on port ${port}`);
+});
+
 /* =======================
     CONNECT TO MONGODB SERVER
 ==========================*/
-mongoose
-  .connect(
-    config.mongodbUri,
-    { useNewUrlParser: true },
-    { useUnifiedTopology: true }
-  )
-  .catch(error => console.log("connected to mongodb server error"))
-  .then(console.log("connected to mongodb server"));
+
+const client = new MongoClient(config.mongodbUri, { useNewUrlParser: true });
+client.once("open", () => {
+  console.log("connected to mongodb server");
+});
+client.connect(err => {
+  const collection = client.db("test").collection("devices");
+  // perform actions on the collection object
+  client.close();
+});
