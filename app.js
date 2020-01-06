@@ -1,11 +1,7 @@
-/* =======================
-    LOAD THE DEPENDENCIES
-==========================*/
 const express = require("express");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
-const MongoClient = require("mongodb").MongoClient;
 
 /* =======================
     LOAD THE CONFIG
@@ -33,16 +29,6 @@ app.get("/", (req, res) => {
   res.send("Hello JWT");
 });
 
-// open the server
-app.listen(port, () => {
-  console.log(`Express is running on port ${port}`);
-});
-
-// index page, just for testing
-app.get("/", (req, res) => {
-  res.send("Hello JWT");
-});
-
 // configure api router
 app.use("/api", require("./routes/api"));
 
@@ -54,13 +40,10 @@ app.listen(port, () => {
 /* =======================
     CONNECT TO MONGODB SERVER
 ==========================*/
-
-const client = new MongoClient(config.mongodbUri, { useNewUrlParser: true });
-client.once("open", () => {
+mongoose.connect(config.mongodbUri);
+mongoose.Promise = global.Promise;
+const db = mongoose.connection;
+db.on("error", console.error);
+db.once("open", () => {
   console.log("connected to mongodb server");
-});
-client.connect(err => {
-  const collection = client.db("test").collection("devices");
-  // perform actions on the collection object
-  client.close();
 });
