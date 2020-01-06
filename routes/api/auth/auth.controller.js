@@ -62,58 +62,74 @@ exports.register = (req, res) => {
     .catch(onError);
 };
 
-/*
-    POST /api/auth/login
-    {
-        username,
-        password
-    }
-*/
-
 exports.login = (req, res) => {
-  res.send("login api is working");
-};
+  const { username, password } = req.body;
+  const secret = req.app.get("jwt-secret");
 
+  // check the user info & generate the jwt
+  // check the user info & generate the jwt
+  const check = user => {
+    if (!user) {
+      // user does not exist
+      throw new Error("login failed");
+    } else {
+      // user exists, check the password
+      if (user.verify(password)) {
+        // create a promise that generates jwt asynchronously
+        const p = new Promise((resolve, reject) => {
+          jwt.sign(
+            {
+              _id: user._id,
+              username: user.username,
+              admin: user.admin
+            },
+            secret,
+            {
+              expiresIn: "7d",
+              issuer: "velopert.com",
+              subject: "userInfo"
+            },
+            (err, token) => {
+              if (err) reject(err);
+              resolve(token);
+            }
+          );
+        });
+        return p;
+      } else {
+        throw new Error("login failed");
+      }
+    }
+  };
+
+  // respond the token
+  const respond = token => {
+    res.json({
+      message: "logged in successfully",
+      token
+    });
+  };
+
+  // error occured
+  const onError = error => {
+    res.status(403).json({
+      message: error.message
+    });
+  };
+
+  // find the user
+  User.findOneByUsername(username)
+    .then(check)
+    .then(respond)
+    .catch(onError);
+};
 /*
     GET /api/auth/check
 */
 
 exports.check = (req, res) => {
-  // read the token from header or url
-  const token = req.headers["x-access-token"] || req.query.token;
-
-  // token does not exist
-  if (!token) {
-    return res.status(403).json({
-      success: false,
-      message: "not logged in"
-    });
-  }
-
-  // create a promise that decodes the token
-  const p = new Promise((resolve, reject) => {
-    jwt.verify(token, req.app.get("jwt-secret"), (err, decoded) => {
-      if (err) reject(err);
-      resolve(decoded);
-    });
+  res.json({
+    success: true,
+    info: req.decoded
   });
-
-  // if token is valid, it will respond with its info
-  const respond = token => {
-    res.json({
-      success: true,
-      info: token
-    });
-  };
-
-  // if it has failed to verify, it will return an error message
-  const onError = error => {
-    res.status(403).json({
-      success: false,
-      message: error.message
-    });
-  };
-
-  // process the promise
-  p.then(respond).catch(onError);
 };
